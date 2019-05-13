@@ -12,11 +12,7 @@ const config = {
     width: resolution.width,
     height:  resolution.height,
     physics: {
-        default: 'arcade',
-        arcade: {
-            gravity: { y: 300 },
-            debug: false
-        }
+        default: 'arcade'
     },
     scene: {
         preload: preload,
@@ -25,48 +21,39 @@ const config = {
     }
 };
 
-// Other game constants
-const scoreMarginFromCenter = 20;
+// Game constants
 const paddleDistFromSides = 100;
 const paddleSpeed = 400;
+const scoreMarginFromCenter = 20;
 
 // Game variables
+let paddles, player1Paddle, player2Paddle;
+let upButton, downButton, wButton, sButton;
+let ball;
 let scoreTextLeft, scoreTextRight;
 let scoreLeft = 0, scoreRight = 0;
-let paddles, player1Paddle, player2Paddle;
-let ball;
 
 // Initialize the game with the defined configuration
 const game = new Phaser.Game(config);
-let upButton, downButton, wButton, sButton;
 
 // Load all necessary resources before game starts
 function preload () {
     // Load images
+    this.load.image('dotted-line', 'assets/dotted-line.png');
     this.load.image('paddle', 'assets/paddle.png');
     this.load.image('ball', 'assets/ball.png');
-    this.load.image('dotted-line', 'assets/dotted-line.png');
 
     // Initialize button listeners
     upButton = this.input.keyboard.addKey('UP');
     downButton = this.input.keyboard.addKey('DOWN');
     wButton = this.input.keyboard.addKey('W');
     sButton = this.input.keyboard.addKey('S');
-
-    // Negate gravity settings
-    this.physics.world.gravity.y = 0;
 }
 
 // Create game objects at start of game
 function create () {
     // Create dotted line in the middle of the screen
     this.add.image(resolution.width * 0.5, resolution.height * 0.5, 'dotted-line');
-
-    // Create the score text and align it
-    scoreTextLeft = this.add.text(resolution.width * 0.5 - scoreMarginFromCenter, resolution.height * 0.5, "0", { font: "65px Arial", fill: "#878787" });
-    scoreTextLeft.setOrigin(1, 0.5); // Align left score to the left of the position
-    scoreTextRight = this.add.text(resolution.width * 0.5 + scoreMarginFromCenter, resolution.height * 0.5, "0", { font: "65px Arial", fill: "#878787" });
-    scoreTextRight.setOrigin(0, 0.5); // Align left score to the left of the position
 
     // Create player paddles
     paddles = this.physics.add.group();
@@ -85,8 +72,14 @@ function create () {
     ball = this.physics.add.sprite(resolution.width * 0.5, resolution.height * 0.5, 'ball');
     ball.setCollideWorldBounds(true); // This means the ball will collide with the window edges
     ball.setBounce(1, 1);
-    ball.body.stopVelocityOnCollide = false;
+
     launchBall();
+
+    // Create the score text and align it
+    scoreTextLeft = this.add.text(resolution.width * 0.5 - scoreMarginFromCenter, resolution.height * 0.5, "0", { font: "65px Arial", fill: "#878787" });
+    scoreTextLeft.setOrigin(1, 0.5); // Align left score to the left of the position
+    scoreTextRight = this.add.text(resolution.width * 0.5 + scoreMarginFromCenter, resolution.height * 0.5, "0", { font: "65px Arial", fill: "#878787" });
+    scoreTextRight.setOrigin(0, 0.5); // Align left score to the left of the position
 
     // Add collision response for when ball collides with a paddle
     this.physics.add.collider(ball, paddles, ballPaddleCollision);
@@ -96,11 +89,6 @@ function create () {
 function update () {
     // Check player controls and update paddle movement if necessary
     updatePlayerControls();
-
-    // Launch new ball when old one is gone
-    if(ball.active === false) {
-        resetBall();
-    }
 
     // Check ball collision
     checkBallWallCollision();
@@ -138,14 +126,6 @@ function updatePlayerControls () {
     }
 }
 
-function resetBall () {
-    // Reset the ball by enabling the it again and resetting the position
-    ball.enableBody(true, resolution.width * 0.5, resolution.height * 0.5, true, true);
-
-    // Launch the newely reset ball
-    launchBall();
-}
-
 function launchBall () {
     // Set random ball velocity
     let randomVelocity = {x:0, y:0};
@@ -153,19 +133,6 @@ function launchBall () {
     randomVelocity.x = (randomVelocity.x < 0) ? -200 : 200; // Set velocity x to a fixed starting value of -200 or 200
 
     ball.setVelocity(randomVelocity.x, randomVelocity.y);
-}
-
-function ballPaddleCollision (ballRef, paddleRef) {
-    // Determine difference in angle between center of paddle and center of ball
-    let yDiff = ballRef.y - paddleRef.y;
-
-    // Add vertical velocity to ball based on the place it hit the paddle
-    ballRef.body.velocity.y += yDiff * 5; // Multiply with a factor to enlarge the velocity change
-
-    // Increase horizontal velocity with each paddle hit just for fun, with a max of 500
-    if(ballRef.body.velocity.x < 500) {
-        ballRef.body.velocity.x += (ballRef.body.velocity.x < 0) ? -10 : 10;
-    }
 }
 
 function checkBallWallCollision () {
@@ -183,5 +150,26 @@ function checkBallWallCollision () {
         }
 
         resetBall();
+    }
+}
+
+function resetBall () {
+    // Reset the ball by enabling the it again and resetting the position
+    ball.setPosition(resolution.width * 0.5, resolution.height * 0.5);
+
+    // Launch the newely reset ball
+    launchBall();
+}
+
+function ballPaddleCollision (ballRef, paddleRef) {
+    // Determine difference in angle between center of paddle and center of ball
+    let yDiff = ballRef.y - paddleRef.y;
+
+    // Add vertical velocity to ball based on the place it hit the paddle
+    ballRef.body.velocity.y += yDiff * 5; // Multiply with a factor to enlarge the velocity change
+
+    // Increase horizontal velocity with each paddle hit just for fun, with a max of 500
+    if(ballRef.body.velocity.x < 500) {
+        ballRef.body.velocity.x += (ballRef.body.velocity.x < 0) ? -10 : 10;
     }
 }
